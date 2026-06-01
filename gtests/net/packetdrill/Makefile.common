@@ -39,11 +39,13 @@ packetdrill-objs := packetdrill.o $(packetdrill-lib)
 packetdrill: $(packetdrill-objs)
 	$(CC) $(LDFLAGS) -o packetdrill -g $(packetdrill-objs) $(packetdrill-ext-libs)
 
-test-bins := checksum_test packet_parser_test packet_to_string_test
+test-bins := checksum_test packet_parser_test packet_to_string_test \
+         tcp_options_edo_test
 tests: $(test-bins)
 	./checksum_test
 	./packet_parser_test
 	./packet_to_string_test
+	./tcp_options_edo_test
 
 binaries: packetdrill $(test-bins)
 
@@ -59,6 +61,11 @@ packet_parser_test: $(packet_parser_test-objs)
 packet_to_string_test-objs := $(packetdrill-lib) packet_to_string_test.o
 packet_to_string_test: $(packet_to_string_test-objs)
 	$(CC) $(LDFLAGS) -o packet_to_string_test $(packet_to_string_test-objs) \
+                $(packetdrill-ext-libs)
+
+tcp_options_edo_test-objs := $(packetdrill-lib) tcp_options_edo_test.o
+tcp_options_edo_test: $(tcp_options_edo_test-objs)
+	$(CC) $(LDFLAGS) -o tcp_options_edo_test $(tcp_options_edo_test-objs) \
                 $(packetdrill-ext-libs)
 
 clean:

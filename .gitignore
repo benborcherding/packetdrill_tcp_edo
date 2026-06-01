@@ -1,0 +1,5 @@
+# Local project working files — kept out of the upstream fork.
+# These hold our planning/notes/agent context and are not part of packetdrill.
+/data/
+/.claude/
+/CLAUDE.md
