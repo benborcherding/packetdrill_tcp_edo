@@ -1,0 +1,19 @@
+// Test C: EDO's purpose - options beyond the 60-byte doff limit.
+// Inbound data segment: doff covers only the EDO Extension (24 B), but the real
+// header (Header_Length=16 words=64 B) carries 40 extra option bytes in the
+// extended region. If the stack honours Header_Length it locates the payload at
+// offset 64 and read() returns exactly 100 bytes; if it (wrongly) used doff it
+// would mis-deliver the 40 NOPs as data.
+0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
+0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
+0.000 bind(3, ..., ...) = 0
+0.000 listen(3, 1) = 0
+
+0.100 < S 0:0(0) win 65535 <mss 1460,sackOK,edoOK>
+0.100 > S. 0:0(0) ack 1 <mss 1460,sackOK,edoOK>
+0.200 < . 1:1(0) ack 1 win 65535
+0.200 accept(3, ..., ...) = 4
+
+// EDO Extension (last doff option) + 40 NOPs in the extended region.
+0.300 < P. 1:101(100) ack 1 win 65535 <edo 16,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>
+0.300 read(4, ..., 1000) = 100

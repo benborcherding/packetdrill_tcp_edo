@@ -1,0 +1,20 @@
+// Test D: kernel-consistent negative case. On a connection where EDO was NEVER
+// negotiated (plain SYN, no edoOK), an inbound segment that nonetheless carries
+// an EDO Extension must NOT make the stack RST or drop the connection - the
+// FreeBSD test kernel simply does not act on it. Data is still delivered.
+0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
+0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
+0.000 bind(3, ..., ...) = 0
+0.000 listen(3, 1) = 0
+
+// Plain handshake, NO edoOK.
+0.100 < S 0:0(0) win 65535 <mss 1460,sackOK,nop,nop>
+0.100 > S. 0:0(0) ack 1 <...>
+0.200 < . 1:1(0) ack 1 win 65535
+0.200 accept(3, ..., ...) = 4
+
+// Stray EDO Extension on a non-EDO connection (doff covers it, no extended
+// region) -> stack must accept the data normally, no RST.
+0.300 < P. 1:101(100) ack 1 win 65535 <edo 6>
+0.300 read(4, ..., 1000) = 100
+0.400 close(4) = 0
