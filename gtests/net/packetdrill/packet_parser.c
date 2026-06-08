@@ -386,6 +386,76 @@ error_out:
 	return PACKET_BAD;
 }
 
+/*
+ * TCP EDO: scan the doff-covered option region for an EDO Extension option
+ * (kind 78) and, when present and usable, set packet->tcp_header_len_override
+ * to the real header length (Header_Length * 4), decoupling the real
+ * header/payload boundary from doff.
+ *
+ * Behaviour mirrors the FreeBSD test kernel (see
+ * data/freebsd-kernel-edo-referenz.md): the kernel does NOT reject malformed
+ * EDO (no drop/RST); an EDO Extension with an unexpected length is simply
+ * ignored (`continue`), and Header_Length is not range-checked. We therefore
+ * only APPLY the override when the option is fully valid and usable
+ * (length == 4, doff*4 <= Header_Length*4 <= segment); any other case is
+ * treated as non-EDO (override stays 0) rather than failing the parse.
+ *
+ * The one hard failure is memory safety: an option whose length byte is
+ * missing or whose length overruns the doff region is a truncated/malformed
+ * packet and yields PACKET_BAD, without ever reading out of bounds.
+ *
+ * Returns PACKET_OK (EDO applied or harmlessly ignored) or PACKET_BAD
+ * (truncated option / out-of-bounds).
+ */
+static int parse_tcp_edo(struct packet *packet, int doff_bytes,
+			 int layer4_bytes, char **error)
+{
+	u8 *opt = (u8 *)(packet->tcp + 1);
+	const int region = doff_bytes - (int)sizeof(struct tcp); /* doff opts */
+	int i = 0;
+
+	while (i < region) {
+		u8 kind = opt[i];
+		u8 opt_len;
+
+		if (kind == TCPOPT_EOL)
+			break;
+		if (kind == TCPOPT_NOP) {
+			i += 1;
+			continue;
+		}
+		/* All other options need a length byte inside the region. */
+		if (i + 1 >= region) {
+			asprintf(error, "Truncated TCP option in doff region");
+			return PACKET_BAD;			/* N5 */
+		}
+		opt_len = opt[i + 1];
+		if (opt_len < 2 || i + opt_len > region) {
+			asprintf(error, "Bad TCP option length in doff region");
+			return PACKET_BAD;			/* N5 */
+		}
+		if (kind == TCPOPT_EDO_EXTENSION) {
+			int hdr_len;
+
+			/* Kernel-consistent: a non-4-byte EDO Extension is
+			 * ignored, not rejected (N1). */
+			if (opt_len != TCPOLEN_EDO_EXTENSION) {
+				i += opt_len;
+				continue;
+			}
+			hdr_len = get_unaligned_be16(opt + i + 2) * 4;
+			/* Only apply if it yields a valid, usable boundary;
+			 * otherwise treat as non-EDO (N2: Header_Length < doff,
+			 * N3: Header_Length > segment). */
+			if (hdr_len >= doff_bytes && hdr_len <= layer4_bytes)
+				packet->tcp_header_len_override = hdr_len;
+			return PACKET_OK;
+		}
+		i += opt_len;
+	}
+	return PACKET_OK;
+}
+
 /* Parse the TCP header. Return a packet_parse_result_t. */
 static int parse_tcp(struct packet *packet, u8 *layer4_start, int layer4_bytes,
 		     u8 *packet_end, char **error)
@@ -399,15 +469,25 @@ static int parse_tcp(struct packet *packet, u8 *layer4_start, int layer4_bytes,
 		goto error_out;
 	}
 	packet->tcp = (struct tcp *) p;
-	const int tcp_header_len = packet_tcp_header_len(packet);
-	if (tcp_header_len < sizeof(struct tcp)) {
+	/* doff-based header length (override still 0 here). */
+	const int doff_header_len = packet_tcp_header_len(packet);
+	if (doff_header_len < sizeof(struct tcp)) {
 		asprintf(error, "TCP data offset too small");
 		goto error_out;
 	}
-	if (tcp_header_len > layer4_bytes) {
+	if (doff_header_len > layer4_bytes) {
 		asprintf(error, "TCP data offset too big");
 		goto error_out;
 	}
+
+	/* TCP EDO may set tcp_header_len_override to the real (larger) header
+	 * length so the header/payload boundary can exceed the doff region. */
+	if (parse_tcp_edo(packet, doff_header_len, layer4_bytes, error) !=
+	    PACKET_OK)
+		goto error_out;
+
+	/* Effective header length: the EDO override if set, else doff*4. */
+	const int tcp_header_len = packet_tcp_header_len(packet);
 
 	tcp_header = packet_append_header(packet, HEADER_TCP, tcp_header_len);
 	if (tcp_header == NULL) {

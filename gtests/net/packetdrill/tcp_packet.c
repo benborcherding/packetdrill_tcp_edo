@@ -143,6 +143,44 @@ void tcp_compute_md5_digest(struct packet *packet,
 }
 
 
+/*
+ * TCP EDO decouples the 4-bit data offset (doff) from the real TCP header
+ * length: doff covers the options only up to and including the EDO Extension
+ * option, while any options after it live in the "extended" region beyond
+ * doff. This returns the number of option bytes covered by doff (ending just
+ * after the EDO Extension option). If no EDO Extension option is present,
+ * the full option length is returned, so non-EDO packets are unchanged.
+ * See data/freebsd-kernel-edo-referenz.md.
+ */
+static int tcp_options_doff_bytes(const struct tcp_options *options)
+{
+	const u8 *data = options ? options->data : NULL;
+	const int len = options ? options->length : 0;
+	int i = 0;
+
+	while (i < len) {
+		u8 kind = data[i];
+		u8 opt_len;
+
+		if (kind == TCPOPT_EOL)
+			break;
+		if (kind == TCPOPT_NOP) {
+			i += 1;
+			continue;
+		}
+		/* Need a length byte for all other options. */
+		if (i + 1 >= len)
+			break;
+		opt_len = data[i + 1];
+		if (opt_len < 2)
+			break;
+		if (kind == TCPOPT_EDO_EXTENSION)
+			return i + opt_len;	/* up to & incl. EDO Extension */
+		i += opt_len;
+	}
+	return len;
+}
+
 struct packet *new_tcp_packet(int address_family,
 			      enum direction_t direction,
 			      struct ip_info ip_info,
@@ -174,7 +212,13 @@ struct packet *new_tcp_packet(int address_family,
 	const int ip_header_bytes = (ip_header_min_len(address_family) +
 				     ip_option_bytes);
 	const int udp_header_bytes = sizeof(struct udp);
+	/* Real TCP header length; with EDO this may exceed MAX_TCP_HEADER_BYTES. */
 	const int tcp_header_bytes = sizeof(struct tcp) + tcp_option_bytes;
+	/* doff region: with EDO only up to & incl. the EDO Extension option,
+	 * rounded up to a 32-bit word; without EDO equal to tcp_header_bytes. */
+	const int doff_option_bytes = tcp_options_doff_bytes(tcp_options);
+	const int doff_header_bytes = sizeof(struct tcp) +
+				      ((doff_option_bytes + 3) & ~3);
 	int ip_bytes;
 	int ace;
 	bool encapsulate = (udp_src_port > 0) || (udp_dst_port > 0);
@@ -196,7 +240,10 @@ struct packet *new_tcp_packet(int address_family,
 	assert((tcp_header_bytes & 0x3) == 0);
 	assert((ip_header_bytes & 0x3) == 0);
 
-	if (tcp_header_bytes > MAX_TCP_HEADER_BYTES) {
+	/* The doff limit (60 bytes / doff <= 15) applies only to the doff
+	 * region, not the real header: with EDO the real header may be larger,
+	 * but doff must still fit in 4 bits. */
+	if (doff_header_bytes > MAX_TCP_HEADER_BYTES) {
 		asprintf(error, "TCP header too large");
 		return NULL;
 	}
@@ -269,7 +316,13 @@ struct packet *new_tcp_packet(int address_family,
 	packet->tcp->dst_port = htons(dst_port);
 	packet->tcp->seq = htonl(start_sequence);
 	packet->tcp->ack_seq = htonl(ack_sequence);
-	packet->tcp->doff = tcp_header_bytes / 4;
+	packet->tcp->doff = doff_header_bytes / 4;
+	/* With TCP EDO the real header extends past the doff region; record the
+	 * effective header length so packet_payload()/the option iterator cover
+	 * the extended region (symmetric with the parse side). 0 stays inactive
+	 * for non-EDO packets. See data/freebsd-kernel-edo-referenz.md. */
+	if (tcp_header_bytes > doff_header_bytes)
+		packet->tcp_header_len_override = tcp_header_bytes;
 	if (window == -1) {
 		if (direction == DIRECTION_INBOUND) {
 			asprintf(error, "window must be specified"

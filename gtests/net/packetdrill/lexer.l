@@ -247,6 +247,8 @@ mtu				return MTU;
 nop				return NOP;
 sack				return SACK;
 sackOK				return SACKOK;
+edoOK				return EDO_SUPPORTED;
+edo				return EDO_EXTENSION;
 TS				return TIMESTAMP;
 md5				return MD5;
 valid				return VALID;

@@ -261,6 +261,23 @@ int tcp_options_to_string(struct packet *packet,
 			}
 			break;
 
+		case TCPOPT_EDO_SUPPORTED:
+			if (option->length == TCPOLEN_EDO_SUPPORTED) {
+				fputs("edoOK", s);
+				written = true;
+			}
+			break;
+
+		case TCPOPT_EDO_EXTENSION:
+			/* Header_Length is in 32-bit words (matches the DSL
+			 * "edo <header_length>"). */
+			if (option->length == TCPOLEN_EDO_EXTENSION) {
+				fprintf(s, "edo %u",
+				        get_unaligned_be16(&option->edo.header_length));
+				written = true;
+			}
+			break;
+
 		case TCPOPT_SACK:
 			if (num_sack_blocks(option->length,
 			                    &num_blocks, error)) {

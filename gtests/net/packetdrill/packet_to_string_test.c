@@ -1324,8 +1324,76 @@ static void test_udplite_ipv6_packet_to_string(void)
 	packet_free(packet);
 }
 
+/* Build a raw IPv4 + TCP packet from option bytes, with a valid IP checksum
+ * and doff derived from the option length. Returns the total IP length. */
+static int s1_make_ipv4_tcp(u8 *buf, const u8 *opts, int opts_len)
+{
+	const int ihl = 20, tcp_fixed = 20;
+	const int ip_len = ihl + tcp_fixed + opts_len;
+	u8 *tcp = buf + ihl;
+	u32 sum = 0;
+	int i;
+
+	memset(buf, 0, ip_len);
+	buf[0] = 0x45;
+	buf[2] = (ip_len >> 8) & 0xff; buf[3] = ip_len & 0xff;
+	buf[8] = 64; buf[9] = IPPROTO_TCP;
+	buf[12] = 192; buf[15] = 2; buf[16] = 192; buf[19] = 1;	/* 192.0.0.2>192.0.0.1 */
+	tcp[0] = 0x04; tcp[1] = 0xd2; tcp[3] = 0x50;		/* 1234 > 80 */
+	tcp[12] = (((tcp_fixed + opts_len) / 4) << 4) & 0xf0;	/* doff */
+	tcp[13] = 0x10;						/* ACK */
+	memcpy(tcp + tcp_fixed, opts, opts_len);
+	for (i = 0; i < ihl; i += 2)
+		sum += (buf[i] << 8) | buf[i + 1];
+	while (sum >> 16)
+		sum = (sum & 0xffff) + (sum >> 16);
+	sum = ~sum & 0xffff;
+	buf[10] = (sum >> 8) & 0xff; buf[11] = sum & 0xff;
+	return ip_len;
+}
+
+/* Render a raw IPv4+TCP packet to a DUMP_SHORT string (caller frees). */
+static char *s1_dump(const u8 *opts, int opts_len)
+{
+	u8 buf[128];
+	int len = s1_make_ipv4_tcp(buf, opts, opts_len);
+	struct packet *packet = packet_new(len);
+	char *error = NULL, *dump = NULL;
+
+	memcpy(packet->buffer, buf, len);
+	assert(parse_packet(packet, len, ETHERTYPE_IP, 0, &error) == PACKET_OK);
+	assert(packet_to_string(packet, DUMP_SHORT, &dump, &error) == STATUS_OK);
+	assert(error == NULL);
+	packet_free(packet);
+	return dump;
+}
+
+/*
+ * S1 (Task 08): packet_to_string renders TCP EDO options readably, matching the
+ * DSL: "edoOK" for EDO Supported and "edo <header_length>" for EDO Extension.
+ */
+static void test_s1_edo_to_string(void)
+{
+	/* EDO Supported: mss(4) + edoOK(2) + sackOK(2). */
+	const u8 sup[] = { 2, 4, 0x05, 0xb4, 77, 2, 4, 2 };
+	/* EDO Extension: kind 78, len 4, Header_Length = 6 words. */
+	const u8 ext[] = { 78, 4, 0x00, 0x06 };
+	char *dump;
+
+	dump = s1_dump(sup, sizeof(sup));
+	printf("dump = '%s'\n", dump);
+	assert(strstr(dump, "edoOK") != NULL);
+	free(dump);
+
+	dump = s1_dump(ext, sizeof(ext));
+	printf("dump = '%s'\n", dump);
+	assert(strstr(dump, "edo 6") != NULL);
+	free(dump);
+}
+
 int main(void)
 {
+	test_s1_edo_to_string();
 	test_tcp_udp_ipv4_packet_to_string();
 	test_sctp_ipv4_packet_to_string();
 	test_sctp_ipv6_packet_to_string();

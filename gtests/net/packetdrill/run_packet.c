@@ -1528,6 +1528,23 @@ static int tcp_options_allowance(const struct packet *actual_packet,
 		return 0;
 }
 
+/*
+ * Like tcp_options_allowance(), but limited to the options within the doff
+ * region. Used for the data-offset comparison: doff never covers the extended
+ * TCP EDO region, so the allowance added to the script's doff must exclude it.
+ * For non-EDO packets this equals tcp_options_allowance() (doff*4 == real
+ * header), so behaviour is unchanged.
+ */
+static int tcp_doff_options_allowance(const struct packet *actual_packet,
+				      const struct packet *script_packet)
+{
+	if (script_packet->flags & FLAG_OPTIONS_NOCHECK)
+		return actual_packet->tcp->doff * sizeof(u32) -
+		       sizeof(struct tcp);
+	else
+		return 0;
+}
+
 /* Return the AccECN ACE count associated with the given TCP header. */
 static int tcp_ace_field(const struct tcp *tcp)
 {
@@ -2769,8 +2786,8 @@ static int verify_tcp(
 	}
 	if (check_field("tcp_data_offset",
 			(script_tcp->doff +
-			 tcp_options_allowance(actual_packet,
-					       script_packet)/sizeof(u32)),
+			 tcp_doff_options_allowance(actual_packet,
+						    script_packet)/sizeof(u32)),
 			actual_tcp->doff, error) ||
 	    check_field("tcp_fin",
 			script_tcp->fin,

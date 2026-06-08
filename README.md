@@ -8,6 +8,11 @@ A fork of [packetdrill](https://code.google.com/p/packetdrill/) which adds suppo
 and generic bugfixes, espcially several fixes required to get packetdrill working on FreeBSD.
 MacOS (El Capitan and higher) is also supported.
 
+This branch additionally adds **TCP EDO (Extended Data Offset,
+draft-ietf-tcpm-tcp-edo-15)** support for testing a modified FreeBSD TCP stack.
+See [EDO.md](EDO.md) for the wire format, the `.pkt` DSL (`edoOK`, `edo
+<header_length>`), and build/test instructions.
+
 ## Information
 There are some papers ([;login: October 2013](https://www.usenix.org/system/files/login/articles/10_cardwell-online.pdf), [USENIX ATC '13](https://www.usenix.org/system/files/conference/atc13/atc13-cardwell.pdf)) and a presentation ([ICCRG IETF87](https://www.ietf.org/proceedings/87/slides/slides-87-iccrg-1.pdf)) describing packetdrill.
 

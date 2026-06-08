@@ -30,6 +30,13 @@
 #include "packet.h"
 
 #define MAX_TCP_OPTION_BYTES (MAX_TCP_HEADER_BYTES - (int)sizeof(struct tcp))
+/* TCP EDO decouples the real option length from the 4-bit data offset, so the
+ * actual options can exceed the 40 bytes that fit within doff. The FreeBSD test
+ * kernel uses an EDO option buffer of TCP_MAXOLEN_EDO (1020); mirror that here.
+ * Note: MAX_TCP_HEADER_BYTES (the doff limit, 60) intentionally stays put --
+ * only the options buffer grows. See data/freebsd-kernel-edo-referenz.md.
+ */
+#define MAX_TCP_OPTION_BYTES_EDO 1020
 #define TCP_OPTION_HEADER_BYTES 2
 #define TCP_EXP_OPTION_HEADER_BYTES 4
 #define MAX_TCP_OPTION_DATA_BYTES (MAX_TCP_OPTION_BYTES - TCP_OPTION_HEADER_BYTES)
@@ -86,8 +93,9 @@
 
 /* Represents a list of TCP options in their wire format. */
 struct tcp_options {
-	u8 data[MAX_TCP_OPTION_BYTES];	/* The options data, in wire format */
-	u8 length;		/* The length, in bytes, of the data */
+	u8 data[MAX_TCP_OPTION_BYTES_EDO];	/* The options data, in wire format */
+	u16 length;		/* The length, in bytes, of the data (u16: with
+				 * EDO the option region can exceed 255 bytes) */
 	u32 flags;		/* meta information, not going on the wire */
 #define TCP_OPTIONS_FLAGS_VALID_MD5 0x00000001 /* Compute valid MD5 option */
 #define TCP_OPTIONS_FLAGS_RAW       0x00000002 /* raw bytes were specified */
@@ -164,6 +172,15 @@ struct tcp_option {
 				} generic;
 			};
 		} exp;
+		struct {
+			/* EDO Extension (kind 78). header_length holds the
+			 * full TCP header length in 32-bit WORDS (not bytes),
+			 * in network byte order. EDO Supported (kind 77) carries
+			 * no payload. No Segment_Length field exists in the
+			 * FreeBSD kernel's 4-byte-only variant.
+			 */
+			u16 header_length;	/* in network order, 32-bit words */
+		} edo;
 		struct {
 			u8 data[MAX_TCP_OPTION_DATA_BYTES];
 		} generic;

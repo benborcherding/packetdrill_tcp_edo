@@ -131,6 +131,14 @@ struct packet {
 	__be32 *tcp_ts_val;	/* location of TCP timestamp val, or NULL */
 	__be32 *tcp_ts_ecr;	/* location of TCP timestamp ecr, or NULL */
 	u8 *tcp_md5_digest;	/* location of TCP MD5 digest, or NULL */
+
+	/* Effective TCP header length in bytes, decoupled from doff for TCP
+	 * EDO. 0 = inactive (use doff*4, i.e. unchanged behaviour). When an EDO
+	 * Extension option is parsed, this is set to Header_Length*4 so the real
+	 * header/payload boundary can exceed the doff region. See
+	 * data/freebsd-kernel-edo-referenz.md.
+	 */
+	int tcp_header_len_override;
 };
 
 /* Allocate and initialize a packet. */
@@ -266,10 +274,15 @@ static inline int packet_sctp_header_len(const struct packet *packet)
 	return sizeof(struct sctp_common_header);
 }
 
-/* Return the length of the TCP header, including options. */
+/* Return the length of the TCP header, including options. With TCP EDO the
+ * real header may exceed the doff region, in which case tcp_header_len_override
+ * holds the effective length (0 = inactive => use doff*4 as before).
+ */
 static inline int packet_tcp_header_len(const struct packet *packet)
 {
 	assert(packet->tcp);
+	if (packet->tcp_header_len_override != 0)
+		return packet->tcp_header_len_override;
 	return packet->tcp->doff * sizeof(u32);
 }
 

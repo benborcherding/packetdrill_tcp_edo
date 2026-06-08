@@ -736,7 +736,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
-%token <reserved> URG MD5 VALID EXP_FAST_OPEN FAST_OPEN
+%token <reserved> URG MD5 VALID EXP_FAST_OPEN FAST_OPEN EDO_SUPPORTED EDO_EXTENSION
 %token <reserved> ACC_ECN_0 ACC_ECN_1 EXP_ACC_ECN_0 EXP_ACC_ECN_1 EE0B EE1B ECEB
 %token <reserved> EXP_TARR
 %token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
@@ -3445,6 +3445,20 @@ tcp_option
 | SACKOK           {
 	$$ = tcp_option_new(TCPOPT_SACK_PERMITTED,
 				    TCPOLEN_SACK_PERMITTED);
+}
+| EDO_SUPPORTED    {
+	/* TCP EDO "EDO Supported" (kind 77), SYN/SYN-ACK only. No payload. */
+	$$ = tcp_option_new(TCPOPT_EDO_SUPPORTED, TCPOLEN_EDO_SUPPORTED);
+}
+| EDO_EXTENSION INTEGER {
+	/* TCP EDO "EDO Extension" (kind 78). The integer is Header_Length,
+	 * the full TCP header length in 32-bit words (network byte order),
+	 * matching the FreeBSD kernel. See data/freebsd-kernel-edo-referenz.md. */
+	$$ = tcp_option_new(TCPOPT_EDO_EXTENSION, TCPOLEN_EDO_EXTENSION);
+	if (!is_valid_u16($2)) {
+		semantic_error("edo header_length out of range");
+	}
+	$$->edo.header_length = htons($2);
 }
 | SACK sack_block_list {
 	$$ = $2;

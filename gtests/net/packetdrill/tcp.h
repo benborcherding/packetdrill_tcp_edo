@@ -92,6 +92,16 @@
 #define TCPOLEN_MD5SIG		18
 #define TCPOLEN_MD5_BASE	2
 #define TCPOPT_FASTOPEN		34
+/* TCP EDO (Extended Data Offset), draft-ietf-tcpm-tcp-edo-15.
+ * Native (non-experimental) option kinds, matching the FreeBSD test kernel
+ * (netinet/tcp.h: TCPOPT_EDO_SUPPORTED/EXTENSION). See
+ * data/freebsd-kernel-edo-referenz.md. The kernel implements ONLY the 4-byte
+ * extension variant (no 6-byte Segment_Length form).
+ */
+#define TCPOPT_EDO_SUPPORTED	77
+#define TCPOLEN_EDO_SUPPORTED	2	/* kind, length */
+#define TCPOPT_EDO_EXTENSION	78
+#define TCPOLEN_EDO_EXTENSION	4	/* kind, length, header_length(16 bit) */
 #define TCPOPT_ACC_ECN_0	0xAC	/* early assignment by IANA */
 #define TCPOPT_ACC_ECN_1	0xAE	/* early assignment by IANA */
 #define TCPOPT_EXP		254	/* Experimental */

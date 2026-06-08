@@ -165,6 +165,7 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	packet->time_usecs	= old_packet->time_usecs;
 	packet->flags		= old_packet->flags;
 	packet->tos_chk		= old_packet->tos_chk;
+	packet->tcp_header_len_override = old_packet->tcp_header_len_override;
 
 	packet_copy_headers(packet, old_packet, bytes_headroom);
 
