@@ -294,6 +294,29 @@ static void semantic_error(const char* message)
 	    current_script_path, current_script_line, message);
 }
 
+/* Append a TCP option 'count' times to an option list, e.g. the "40*nop"
+ * shorthand. 'prototype' is the single option parsed from the script; we copy
+ * it 'count' times into the list and then free the prototype. Returns STATUS_OK
+ * on success, STATUS_ERR if the list would overflow. */
+static int tcp_options_append_repeated(struct tcp_options *list,
+				       struct tcp_option *prototype, s64 count)
+{
+	int result = STATUS_OK;
+	s64 i;
+
+	for (i = 0; i < count; i++) {
+		struct tcp_option *copy = malloc(sizeof(struct tcp_option));
+
+		memcpy(copy, prototype, sizeof(struct tcp_option));
+		if (tcp_options_append(list, copy)) {
+			result = STATUS_ERR;
+			break;
+		}
+	}
+	free(prototype);
+	return result;
+}
+
 /* This standard callback is invoked by flex when it encounters
  * the end of a file. We return 1 to tell flex to return EOF.
  */
@@ -3382,9 +3405,29 @@ tcp_option_list
 		semantic_error("TCP option list too long");
 	}
 }
+| INTEGER '*' tcp_option           {
+	/* "N*opt" shorthand: repeat the option N times (e.g. "40*nop"). */
+	$$ = tcp_options_new();
+	if ($1 < 1) {
+		semantic_error("TCP option repeat count must be >= 1");
+	}
+	if (tcp_options_append_repeated($$, $3, $1)) {
+		semantic_error("TCP option list too long");
+	}
+}
 | tcp_option_list ',' tcp_option   {
 	$$ = $1;
 	if (tcp_options_append($$, $3)) {
+		semantic_error("TCP option list too long");
+	}
+}
+| tcp_option_list ',' INTEGER '*' tcp_option   {
+	/* "N*opt" shorthand: repeat the option N times (e.g. "40*nop"). */
+	$$ = $1;
+	if ($3 < 1) {
+		semantic_error("TCP option repeat count must be >= 1");
+	}
+	if (tcp_options_append_repeated($$, $5, $3)) {
 		semantic_error("TCP option list too long");
 	}
 }
