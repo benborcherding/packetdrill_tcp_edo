@@ -21,4 +21,4 @@
 // Server writes; the stack's data segment carries an EDO Extension with
 // Header_Length = 25 words, followed by 76 NOPs in the extended region.
 0.300 write(4, ..., 100) = 100
-0.300 > P. 1:101(100) ack 1 <edo 25,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>
+0.300 > P. 1:101(100) ack 1 <edo 25,76*nop>

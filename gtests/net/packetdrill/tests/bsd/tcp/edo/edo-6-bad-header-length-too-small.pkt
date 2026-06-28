@@ -16,7 +16,7 @@
 0.200 accept(3, ..., ...) = 4
 
 // Bogus Header_Length (16 B) < doff header (24 B) -> dropped, rcv_nxt stays 1.
-0.300 < P. 1:101(100) ack 1 win 65535 <edo 4,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>
+0.300 < P. 1:101(100) ack 1 win 65535 <edo 4,40*nop>
 
 // Recovery: a plain retransmit of the same data is delivered normally.
 0.400 < P. 1:101(100) ack 1 win 65535

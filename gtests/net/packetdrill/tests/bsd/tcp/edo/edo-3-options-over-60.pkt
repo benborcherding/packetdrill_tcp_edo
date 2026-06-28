@@ -15,5 +15,5 @@
 0.200 accept(3, ..., ...) = 4
 
 // EDO Extension (last doff option) + 40 NOPs in the extended region.
-0.300 < P. 1:101(100) ack 1 win 65535 <edo 16,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>
+0.300 < P. 1:101(100) ack 1 win 65535 <edo 16,40*nop>
 0.300 read(4, ..., 1000) = 100
