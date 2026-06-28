@@ -388,7 +388,7 @@ error_out:
 
 /*
  * TCP EDO: scan the doff-covered option region for an EDO Extension option
- * (kind 78) and, when present and usable, set packet->tcp_header_len_override
+ * (kind 80) and, when present and usable, set packet->tcp_header_len_override
  * to the real header length (Header_Length * 4), decoupling the real
  * header/payload boundary from doff.
  *

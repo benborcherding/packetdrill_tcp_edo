@@ -1,6 +1,13 @@
 // Test B: once EDO is negotiated, every non-SYN segment the stack sends carries
-// an EDO Extension (kind 78). Here the server writes data and we assert the
-// outbound data segment carries the EDO Extension.
+// an EDO Extension (kind 80). The current FreeBSD test kernel additionally pads
+// every outbound EDO data segment with dummy NOPs up to EDO_TEST_OLEN (80 option
+// bytes) to exercise the send side beyond the 60-byte doff limit (see the
+// "TEST SEGMENT FOR ADDING DUMMY OPTIONS" block in netinet/tcp_output.c).
+//
+// Resulting outbound option layout on a data segment:
+//   EDO Extension (4 B) + 76 NOPs = 80 option bytes.
+//   doff covers only up to & incl. the EDO Extension -> doff = 6 (24 B).
+//   Header_Length field = (20 + 80) / 4 = 25 words (100 B real header).
 0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
 0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
 0.000 bind(3, ..., ...) = 0
@@ -11,6 +18,7 @@
 0.200 < . 1:1(0) ack 1 win 65535
 0.200 accept(3, ..., ...) = 4
 
-// Server writes; the stack's data segment must carry an EDO Extension.
+// Server writes; the stack's data segment carries an EDO Extension with
+// Header_Length = 25 words, followed by 76 NOPs in the extended region.
 0.300 write(4, ..., 100) = 100
-0.300 > P. 1:101(100) ack 1 <edo 6>
+0.300 > P. 1:101(100) ack 1 <edo 25,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>

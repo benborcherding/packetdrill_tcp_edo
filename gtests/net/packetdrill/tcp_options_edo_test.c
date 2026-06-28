@@ -148,7 +148,7 @@ static struct packet *build_tcp(const struct tcp_options *opts, char **error)
 }
 
 /*
- * U1 (Task 04, build side): an EDO Supported option (kind 77, len 2), padded
+ * U1 (Task 04, build side): an EDO Supported option (kind 79, len 2), padded
  * to a 32-bit word, lands on the wire verbatim and is fully covered by doff
  * (no EDO Extension present, so doff behaves exactly as before).
  */
@@ -182,7 +182,7 @@ static void test_u1_build_edo_supported(void)
 }
 
 /*
- * U2 (Task 04, build side): an EDO Extension (kind 78, len 4) followed by
+ * U2 (Task 04, build side): an EDO Extension (kind 80, len 4) followed by
  * options that push the REAL header past 60 bytes. doff must cover only up to
  * and including the EDO Extension, while the real header (and thus ip_bytes)
  * accounts for the full, oversized option region.

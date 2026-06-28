@@ -1375,9 +1375,9 @@ static char *s1_dump(const u8 *opts, int opts_len)
 static void test_s1_edo_to_string(void)
 {
 	/* EDO Supported: mss(4) + edoOK(2) + sackOK(2). */
-	const u8 sup[] = { 2, 4, 0x05, 0xb4, 77, 2, 4, 2 };
-	/* EDO Extension: kind 78, len 4, Header_Length = 6 words. */
-	const u8 ext[] = { 78, 4, 0x00, 0x06 };
+	const u8 sup[] = { 2, 4, 0x05, 0xb4, 79, 2, 4, 2 };
+	/* EDO Extension: kind 80, len 4, Header_Length = 6 words. */
+	const u8 ext[] = { 80, 4, 0x00, 0x06 };
 	char *dump;
 
 	dump = s1_dump(sup, sizeof(sup));

@@ -1,0 +1,24 @@
+// Test F: receive-side EDO Header_Length validation (netinet/tcp_input.c),
+// lower-bound case. real_off = Header_Length*4 must be >= doff*4, i.e. the
+// extended header may not be SHORTER than the visible (doff) header.
+//
+// doff covers the EDO Extension only (doff = 6 => 24 B). We claim
+// Header_Length = 4 words = 16 B, which is < 24 B -> the kernel MUST drop the
+// segment ("goto drop"), without RST.
+0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
+0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
+0.000 bind(3, ..., ...) = 0
+0.000 listen(3, 1) = 0
+
+0.100 < S 0:0(0) win 65535 <mss 1460,sackOK,edoOK>
+0.100 > S. 0:0(0) ack 1 <mss 1460,sackOK,edoOK>
+0.200 < . 1:1(0) ack 1 win 65535
+0.200 accept(3, ..., ...) = 4
+
+// Bogus Header_Length (16 B) < doff header (24 B) -> dropped, rcv_nxt stays 1.
+0.300 < P. 1:101(100) ack 1 win 65535 <edo 4,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>
+
+// Recovery: a plain retransmit of the same data is delivered normally.
+0.400 < P. 1:101(100) ack 1 win 65535
+0.400 read(4, ..., 1000) = 100
+0.500 close(4) = 0

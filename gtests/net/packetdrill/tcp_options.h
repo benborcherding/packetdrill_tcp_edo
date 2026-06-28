@@ -173,9 +173,9 @@ struct tcp_option {
 			};
 		} exp;
 		struct {
-			/* EDO Extension (kind 78). header_length holds the
+			/* EDO Extension (kind 80). header_length holds the
 			 * full TCP header length in 32-bit WORDS (not bytes),
-			 * in network byte order. EDO Supported (kind 77) carries
+			 * in network byte order. EDO Supported (kind 79) carries
 			 * no payload. No Segment_Length field exists in the
 			 * FreeBSD kernel's 4-byte-only variant.
 			 */

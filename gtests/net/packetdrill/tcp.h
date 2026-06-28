@@ -98,9 +98,9 @@
  * data/freebsd-kernel-edo-referenz.md. The kernel implements ONLY the 4-byte
  * extension variant (no 6-byte Segment_Length form).
  */
-#define TCPOPT_EDO_SUPPORTED	77
+#define TCPOPT_EDO_SUPPORTED	79
 #define TCPOLEN_EDO_SUPPORTED	2	/* kind, length */
-#define TCPOPT_EDO_EXTENSION	78
+#define TCPOPT_EDO_EXTENSION	80
 #define TCPOLEN_EDO_EXTENSION	4	/* kind, length, header_length(16 bit) */
 #define TCPOPT_ACC_ECN_0	0xAC	/* early assignment by IANA */
 #define TCPOPT_ACC_ECN_1	0xAE	/* early assignment by IANA */

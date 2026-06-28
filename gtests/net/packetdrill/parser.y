@@ -3447,11 +3447,11 @@ tcp_option
 				    TCPOLEN_SACK_PERMITTED);
 }
 | EDO_SUPPORTED    {
-	/* TCP EDO "EDO Supported" (kind 77), SYN/SYN-ACK only. No payload. */
+	/* TCP EDO "EDO Supported" (kind 79), SYN/SYN-ACK only. No payload. */
 	$$ = tcp_option_new(TCPOPT_EDO_SUPPORTED, TCPOLEN_EDO_SUPPORTED);
 }
 | EDO_EXTENSION INTEGER {
-	/* TCP EDO "EDO Extension" (kind 78). The integer is Header_Length,
+	/* TCP EDO "EDO Extension" (kind 80). The integer is Header_Length,
 	 * the full TCP header length in 32-bit words (network byte order),
 	 * matching the FreeBSD kernel. See data/freebsd-kernel-edo-referenz.md. */
 	$$ = tcp_option_new(TCPOPT_EDO_EXTENSION, TCPOLEN_EDO_EXTENSION);

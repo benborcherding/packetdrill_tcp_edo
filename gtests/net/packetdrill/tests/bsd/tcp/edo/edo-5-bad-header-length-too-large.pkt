@@ -1,0 +1,29 @@
+// Test E: receive-side EDO Header_Length validation (netinet/tcp_input.c).
+// The stack only honours an EDO Extension if the extended header length is
+// sane: real_off = Header_Length*4 must satisfy
+//     doff*4 <= real_off <= doff*4 + tlen
+// otherwise the segment is dropped ("goto drop"), without RST.
+//
+// Here doff covers the EDO Extension only (doff = 6 => 24 B) and the segment
+// carries 40 NOPs (extended region) + 100 B payload, so the upper bound is
+// 24 + (40 + 100) = 164 B. We claim Header_Length = 60 words = 240 B, which
+// exceeds that bound -> the kernel MUST drop the segment.
+0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
+0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
+0.000 bind(3, ..., ...) = 0
+0.000 listen(3, 1) = 0
+
+0.100 < S 0:0(0) win 65535 <mss 1460,sackOK,edoOK>
+0.100 > S. 0:0(0) ack 1 <mss 1460,sackOK,edoOK>
+0.200 < . 1:1(0) ack 1 win 65535
+0.200 accept(3, ..., ...) = 4
+
+// Bogus Header_Length (240 B) > segment bound -> dropped, rcv_nxt stays 1.
+0.300 < P. 1:101(100) ack 1 win 65535 <edo 60,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop>
+
+// Recovery: a plain retransmit of the same data is delivered normally. If the
+// bogus segment had (wrongly) been accepted, rcv_nxt would already be 101 and
+// this would be a pure duplicate, so read() would block and the test fail.
+0.400 < P. 1:101(100) ack 1 win 65535
+0.400 read(4, ..., 1000) = 100
+0.500 close(4) = 0
