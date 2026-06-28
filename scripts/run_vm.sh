@@ -15,10 +15,10 @@
 # nothing prompts interactively.
 #
 # Usage (from anywhere):
-#   tests/bsd/tcp/edo/run_vm.sh                       # full EDO suite
-#   tests/bsd/tcp/edo/run_vm.sh tests/bsd/tcp/edo/edo-3-options-over-60.pkt
-#   SKIP_BUILD=1 tests/bsd/tcp/edo/run_vm.sh          # skip sync+build (faster)
-#   RETRIES=5 tests/bsd/tcp/edo/run_vm.sh             # retries per test (def 3)
+#   scripts/run_vm.sh                                 # full EDO suite
+#   scripts/run_vm.sh tests/bsd/tcp/edo/edo-3-options-over-60.pkt
+#   SKIP_BUILD=1 scripts/run_vm.sh                    # skip sync+build (faster)
+#   RETRIES=5 scripts/run_vm.sh                       # retries per test (def 3)
 #
 # Config via env: FBSD_VM (ssh alias), FBSD_DEST (path in VM, rel. to home),
 # RETRIES, SKIP_BUILD.
@@ -29,9 +29,8 @@ DEST="${FBSD_DEST:-packetdrill}"
 RETRIES="${RETRIES:-3}"
 TARGET="${1:-tests/bsd/tcp/edo}"
 
-# packetdrill source root = four levels up from this script
-# (gtests/net/packetdrill/tests/bsd/tcp/edo/run_vm.sh).
-SRC_DIR="$(cd "$(dirname "$0")/../../../.." && pwd)/"
+# packetdrill source root, relative to this script at <repo>/scripts/run_vm.sh.
+SRC_DIR="$(cd "$(dirname "$0")/../gtests/net/packetdrill" && pwd)/"
 
 if [ "${SKIP_BUILD:-0}" = "1" ]; then
 	printf '>>> SKIP_BUILD=1: using the existing build on %s\n' "$VM"

@@ -1,6 +1,7 @@
 # EDO-Tests ausführen
 
-Kurzanleitung. Was die einzelnen Tests prüfen, steht in [`README.md`](README.md).
+Kurzanleitung. Was die einzelnen Tests prüfen, steht in
+[`tests/bsd/tcp/edo/README.md`](../gtests/net/packetdrill/tests/bsd/tcp/edo/README.md).
 
 EDO-Tests müssen **im modifizierten FreeBSD-EDO-Kernel** laufen — auf dem Mac in
 einer FreeBSD-VM (UTM), nicht in Docker. VM-Einrichtung: `.claude/FREEBSD_BUILD_ENV.md`
@@ -32,14 +33,14 @@ make tests               # Unit-Tests (checksum / parser / edo)
 ## Integrationstests auf der VM
 
 Der Runner synchronisiert die Quellen in die VM, baut dort und führt die Suite
-als root aus (mit Retry gegen den Kaltstart-Timing-Ausreißer). Aus
-`gtests/net/packetdrill/`:
+als root aus (mit Retry gegen den Kaltstart-Timing-Ausreißer). Aus dem
+Repo-Root:
 
 ```sh
-tests/bsd/tcp/edo/run_vm.sh                                     # ganze EDO-Suite
-tests/bsd/tcp/edo/run_vm.sh tests/bsd/tcp/edo/edo-3-options-over-60.pkt   # ein Test
-SKIP_BUILD=1 tests/bsd/tcp/edo/run_vm.sh                        # ohne Rebuild (schneller)
-RETRIES=5 tests/bsd/tcp/edo/run_vm.sh                           # mehr Retries
+scripts/run_vm.sh                                     # ganze EDO-Suite
+scripts/run_vm.sh tests/bsd/tcp/edo/edo-3-options-over-60.pkt   # ein Test
+SKIP_BUILD=1 scripts/run_vm.sh                        # ohne Rebuild (schneller)
+RETRIES=5 scripts/run_vm.sh                           # mehr Retries
 ```
 
 Konfiguration über Env: `FBSD_VM` (ssh-Alias, Default `fbsd-edo`), `FBSD_DEST`
